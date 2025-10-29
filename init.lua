@@ -127,14 +127,58 @@ vim.o.signcolumn = 'yes'
 
 -- Decrease update time
 vim.o.updatetime = 250
+local function autosave_with_autocmds()
+  if not vim.bo.modified then
+    return
+  end
+
+  local ok, err = pcall(function()
+    -- Trigger all pre-save hooks
+    vim.api.nvim_exec_autocmds('BufWritePre', { buffer = 0 })
+
+    -- Check if this buffer has a custom BufWriteCmd handler
+    local has_writecmd = vim.api.nvim_get_autocmds {
+      event = 'BufWriteCmd',
+      buffer = 0,
+    }
+    if #has_writecmd > 0 then
+      -- Let the plugin handle the write
+      vim.api.nvim_exec_autocmds('BufWriteCmd', { buffer = 0 })
+    else
+      -- Regular write
+      vim.cmd 'silent write'
+    end
+
+    -- Post-save hooks
+    vim.api.nvim_exec_autocmds('BufWritePost', { buffer = 0 })
+  end)
+
+  if not ok then
+    local f = io.open(vim.fn.stdpath 'data' .. '/autosave_errors.log', 'a')
+    if f then
+      f:write(os.date '%Y-%m-%d %H:%M:%S ' .. tostring(err) .. '\n')
+      f:close()
+    end
+    vim.notify('Autosave error: ' .. tostring(err), vim.log.levels.ERROR)
+  end
+end
+
 vim.api.nvim_create_autocmd('CursorHold', {
   callback = function()
     local bufname = vim.fn.expand '%:p'
     if bufname ~= '' and vim.bo.modifiable and vim.bo.buftype == '' and vim.bo.filetype ~= 'undotree' then
-      vim.cmd 'update'
+      autosave_with_autocmds()
     end
   end,
 })
+-- vim.api.nvim_create_autocmd('CursorHold', {
+--   callback = function()
+--     local bufname = vim.fn.expand '%:p'
+--     if bufname ~= '' and vim.bo.modifiable and vim.bo.buftype == '' and vim.bo.filetype ~= 'undotree' then
+--       vim.cmd 'update'
+--     end
+--   end,
+-- })
 
 -- Decrease mapped sequence wait time
 vim.o.timeoutlen = 300
@@ -776,6 +820,7 @@ require('lazy').setup({
         -- Conform can also run multiple formatters sequentially
         python = { 'isort', 'ruff' },
         go = { 'goimports', 'gofmt', 'golines' },
+        sh = { 'shfmt' },
         --
         -- You can use 'stop_after_first' to run the first available formatter from the list
         javascript = { 'prettierd', 'prettier', stop_after_first = true },
@@ -996,6 +1041,71 @@ require('lazy').setup({
   -- Or use telescope!
   -- In normal mode type `<space>sh` then write `lazy.nvim-plugin`
   -- you can continue same window with `<space>sr` which resumes last telescope search
+  {
+    '3rd/image.nvim',
+    build = false, -- so that it doesn't build the rock https://github.com/3rd/image.nvim/issues/91#issuecomment-2453430239
+    config = function()
+      require('image').setup {
+        backend = 'kitty', -- or "ueberzug" or "sixel"
+        processor = 'magick_cli', -- or "magick_rock"
+        integrations = {
+          markdown = {
+            enabled = true,
+            clear_in_insert_mode = false,
+            download_remote_images = true,
+            only_render_image_at_cursor = false,
+            only_render_image_at_cursor_mode = 'popup', -- or "inline"
+            floating_windows = false, -- if true, images will be rendered in floating markdown windows
+            filetypes = { 'markdown', 'vimwiki' }, -- markdown extensions (ie. quarto) can go here
+          },
+          neorg = {
+            enabled = true,
+            filetypes = { 'norg' },
+          },
+          typst = {
+            enabled = true,
+            filetypes = { 'typst' },
+          },
+          html = {
+            enabled = false,
+          },
+          css = {
+            enabled = false,
+          },
+        },
+        max_width = nil,
+        max_height = nil,
+        max_width_window_percentage = nil,
+        max_height_window_percentage = 50,
+        scale_factor = 1.0,
+        window_overlap_clear_enabled = false, -- toggles images when windows are overlapped
+        window_overlap_clear_ft_ignore = { 'cmp_menu', 'cmp_docs', 'snacks_notif', 'scrollview', 'scrollview_sign' },
+        editor_only_render_when_focused = false, -- auto show/hide images when the editor gains/looses focus
+        tmux_show_only_in_active_window = false, -- auto show/hide images in the correct Tmux window (needs visual-activity off)
+        hijack_file_patterns = { '*.png', '*.jpg', '*.jpeg', '*.gif', '*.webp', '*.avif' }, -- render image files as images when opened
+      }
+    end,
+  },
+  {
+    'benlubas/molten-nvim',
+    version = '^1.0.0', -- use version <2.0.0 to avoid breaking changes
+    build = ':UpdateRemotePlugins',
+    init = function()
+      -- this is an example, not a default. Please see the readme for more configuration options
+      vim.g.molten_output_win_max_height = 12
+    end,
+  },
+  {
+    'GCBallesteros/jupytext.nvim',
+    lazy = false, -- load eagerly to ensure .ipynb files are handled
+    config = function()
+      require('jupytext').setup {
+        style = 'markdown',
+        output_extension = 'md',
+        force_ft = 'markdown',
+      }
+    end,
+  },
 }, {
   ui = {
     -- If you are using a Nerd Font: set icons to an empty table which will use the
