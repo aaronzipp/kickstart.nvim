@@ -942,8 +942,11 @@ require('lazy').setup({
 
   { -- Highlight, edit, and navigate code
     'nvim-treesitter/nvim-treesitter',
+    lazy = false,
+    build = ':TSUpdate',
+    branch = 'main',
     config = function()
-      local filetypes = { 
+      local parsers = { 
         'bash',
         'c',
         'diff',
@@ -963,12 +966,17 @@ require('lazy').setup({
         'git_rebase',
         'gitattributes',
         'gitcommit',
-        'gitignore',
-      }
-      require('nvim-treesitter').install(filetypes)
+        'gitignore',}
+      require('nvim-treesitter').install(parsers)
       vim.api.nvim_create_autocmd('FileType', {
-        pattern = filetypes,
-        callback = function() vim.treesitter.start() end,
+        callback = function(args)
+          local buf, filetype = args.buf, args.match
+
+          local language = vim.treesitter.language.get_lang(filetype)
+          if not vim.tbl_contains(parsers, language) then return end
+
+          vim.treesitter.start()
+        end,
       })
     end,
   },
