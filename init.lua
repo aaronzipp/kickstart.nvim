@@ -665,10 +665,22 @@ require('lazy').setup({
         -- clangd = {},
         -- gopls = {},
         -- For Python, this uses:
-        --  - basedpyright: fast/sane language features
+        --  - basedpyright: fast/sane language features (diagnostics disabled)
         --  - ruff: linting and code actions
         --  - ty: type checking diagnostics
-        basedpyright = {},
+        basedpyright = {
+          handlers = {
+            ['textDocument/publishDiagnostics'] = function() end,
+          },
+          settings = {
+            basedpyright = {
+              disableOrganizeImports = true,
+              analysis = {
+                typeCheckingMode = 'off',
+              },
+            },
+          },
+        },
         ruff = {},
         ty = {},
         -- rust_analyzer = {},
@@ -765,7 +777,7 @@ require('lazy').setup({
       formatters_by_ft = {
         lua = { 'stylua' },
         -- Conform can also run multiple formatters sequentially
-        python = { 'ruff_fix', 'ruff_format' },
+        python = { 'isort', 'ruff_fix', 'ruff_format' },
         go = { 'goimports', 'golines', 'gofmt' },
         sql = { 'sql_formatter' },
         -- You can use 'stop_after_first' to run the first available formatter from the list
