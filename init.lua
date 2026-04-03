@@ -661,6 +661,7 @@ require('lazy').setup({
       --  Feel free to add/remove any LSPs that you want here. They will automatically be installed.
       --  See `:help lsp-config` for information about keys and how to configure
       ---@type table<string, vim.lsp.Config>
+      local ignore_diagnostics = function() end
       local servers = {
         -- clangd = {},
         -- gopls = {},
@@ -670,7 +671,8 @@ require('lazy').setup({
         --  - ty: type checking diagnostics
         basedpyright = {
           handlers = {
-            ['textDocument/publishDiagnostics'] = function() end,
+            -- Diagnostics are handled by Ruff and Ty for Python.
+            ['textDocument/publishDiagnostics'] = ignore_diagnostics,
           },
           settings = {
             basedpyright = {
