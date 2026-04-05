@@ -5,4 +5,9 @@
 
 ---@module 'lazy'
 ---@type LazySpec
-return {}
+return {
+  -- ThePrimeagen's 99 plugin
+  {
+    'ThePrimeagen/99',
+  },
+}
