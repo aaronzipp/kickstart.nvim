@@ -707,10 +707,30 @@ do
   --  Feel free to add/remove any LSPs that you want here. They will automatically be installed.
   --  See `:help lsp-config` for information about keys and how to configure
   ---@type table<string, vim.lsp.Config>
+  local noop_handler = function() end
   local servers = {
     -- clangd = {},
     gopls = {},
-    -- pyright = {},
+    -- For Python, this uses:
+    --  - basedpyright: fast/sane language features (diagnostics disabled)
+    --  - ruff: linting and code actions
+    --  - ty: type checking diagnostics
+    basedpyright = {
+      handlers = {
+        -- Diagnostics are handled by Ruff and Ty for Python.
+        ['textDocument/publishDiagnostics'] = noop_handler,
+      },
+      settings = {
+        basedpyright = {
+          disableOrganizeImports = true,
+          analysis = {
+            typeCheckingMode = 'off',
+          },
+        },
+      },
+    },
+    ruff = {},
+    ty = {},
     -- rust_analyzer = {},
     --
     -- Some languages (like typescript) have entire language plugins that can be useful:
